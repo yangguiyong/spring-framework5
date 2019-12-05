@@ -144,6 +144,7 @@ public class SpringServletContainerInitializer implements ServletContainerInitia
 
 		List<WebApplicationInitializer> initializers = new LinkedList<>();
 
+		//判断传入进来的WebApplicationInitializer实现类，是否是接口、是否是抽象的，如果不是则加入到initializers中，供下面循环调用
 		if (webAppInitializerClasses != null) {
 			for (Class<?> waiClass : webAppInitializerClasses) {
 				// Be defensive: Some servlet containers provide us with invalid classes,
@@ -167,8 +168,10 @@ public class SpringServletContainerInitializer implements ServletContainerInitia
 		}
 
 		servletContext.log(initializers.size() + " Spring WebApplicationInitializers detected on classpath");
+		//如果WebApplicationInitializer的实现类有多个，且实现了Orderd接口或者标注了@Order注解，会进行排序，决定调用顺序
 		AnnotationAwareOrderComparator.sort(initializers);
 		for (WebApplicationInitializer initializer : initializers) {
+			//具体的实现方法是在AbstractDispatcherServletInitializer中
 			initializer.onStartup(servletContext);
 		}
 	}

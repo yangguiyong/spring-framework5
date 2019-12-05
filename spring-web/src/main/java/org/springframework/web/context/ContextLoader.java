@@ -274,20 +274,27 @@ public class ContextLoader {
 		try {
 			// Store context in local instance variable, to guarantee that
 			// it is available on ServletContext shutdown.
+			//在创建xml版本的时候context是空的，所以需要创建根容器
 			if (this.context == null) {
+				//注意：由于xml版本中context为空，所以这个if是用来创建父容器的（根容器）
 				this.context = createWebApplicationContext(servletContext);
 			}
 			if (this.context instanceof ConfigurableWebApplicationContext) {
 				ConfigurableWebApplicationContext cwac = (ConfigurableWebApplicationContext) this.context;
-				if (!cwac.isActive()) {
+				//判断容器是否激活
+				if (!cwac.isActive()) {//没有激活
 					// The context has not yet been refreshed -> provide services such as
 					// setting the parent context, setting the application context id, etc
+
+					//若此时ConfigurableWebApplicationContext对象的父容器为空
 					if (cwac.getParent() == null) {
 						// The context instance was injected without an explicit parent ->
 						// determine parent for root web application context, if any.
+						//加载父容器
 						ApplicationContext parent = loadParentContext(servletContext);
 						cwac.setParent(parent);
 					}
+					//配置和刷新父容器
 					configureAndRefreshWebApplicationContext(cwac, servletContext);
 				}
 			}
@@ -406,6 +413,7 @@ public class ContextLoader {
 		}
 
 		customizeContext(sc, wac);
+		//IOC的容器刷新
 		wac.refresh();
 	}
 

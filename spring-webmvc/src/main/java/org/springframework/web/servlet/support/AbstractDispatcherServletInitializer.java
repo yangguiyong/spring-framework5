@@ -59,7 +59,9 @@ public abstract class AbstractDispatcherServletInitializer extends AbstractConte
 
 	@Override
 	public void onStartup(ServletContext servletContext) throws ServletException {
+		//实例化spring的Root 上下文（父容器，用于扫描service和dao）
 		super.onStartup(servletContext);
+		//注册DispatcherServlet，创建我们自己的spring web上下文对象（子容器,用于扫描controller）
 		registerDispatcherServlet(servletContext);
 	}
 
@@ -78,19 +80,25 @@ public abstract class AbstractDispatcherServletInitializer extends AbstractConte
 		String servletName = getServletName();
 		Assert.hasLength(servletName, "getServletName() must not return null or empty");
 
+		//创建AnnotationConfigWebApplicationContext子容器，也是在子类中实现的
 		WebApplicationContext servletAppContext = createServletApplicationContext();
 		Assert.notNull(servletAppContext, "createServletApplicationContext() must not return null");
 
+		//创建DispatcherServlet，所以Servlet容器会对DispathcherServlet进行生命周期管理
 		FrameworkServlet dispatcherServlet = createDispatcherServlet(servletAppContext);
 		Assert.notNull(dispatcherServlet, "createDispatcherServlet(WebApplicationContext) must not return null");
+
+		//获取ApplicationContextInitializer对象，然后将其注册到DispatcherServlet
 		dispatcherServlet.setContextInitializers(getServletApplicationContextInitializers());
 
+		//将DispatcherServlet注册到Servlet容器中
 		ServletRegistration.Dynamic registration = servletContext.addServlet(servletName, dispatcherServlet);
 		if (registration == null) {
 			throw new IllegalStateException("Failed to register servlet with name '" + servletName + "'. " +
 					"Check if there is another servlet registered under the same name.");
 		}
 
+		//设置DispatcherServlet的属性
 		registration.setLoadOnStartup(1);
 		registration.addMapping(getServletMappings());
 		registration.setAsyncSupported(isAsyncSupported());

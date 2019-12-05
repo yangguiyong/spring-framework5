@@ -53,8 +53,10 @@ public abstract class AbstractAnnotationConfigDispatcherServletInitializer
 	@Override
 	@Nullable
 	protected WebApplicationContext createRootApplicationContext() {
+		//获取父容器中IOC的配置类，在自己实现的类中需要实现该方法，指定自己写的配置扫描类
 		Class<?>[] configClasses = getRootConfigClasses();
 		if (!ObjectUtils.isEmpty(configClasses)) {
+			//创建父容器
 			AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
 			context.register(configClasses);
 			return context;
@@ -71,9 +73,12 @@ public abstract class AbstractAnnotationConfigDispatcherServletInitializer
 	 */
 	@Override
 	protected WebApplicationContext createServletApplicationContext() {
+		//创建子容器
 		AnnotationConfigWebApplicationContext context = new AnnotationConfigWebApplicationContext();
+		//获取子容器的配置类，getServletConfigClasses需要自己去实现
 		Class<?>[] configClasses = getServletConfigClasses();
 		if (!ObjectUtils.isEmpty(configClasses)) {
+			//注册配置类到子容器
 			context.register(configClasses);
 		}
 		return context;

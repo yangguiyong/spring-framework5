@@ -536,26 +536,35 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
-				//注册beanPostProcessor
+				/**
+				 * 注册beanPostProcessor,这里会将Spring容器中自带的一些BeanPostProcessor后置处理器初始化并添加到beanFactory中
+				 * 这里的BeanPostProcessor也是会走Bean的生命周期，其内部也是调用getBean方法来创建Bean
+				 */
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
+				//初始化国际化资源处理器
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				//创建事件多播器
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
+				//这个方法是预留给子类实现，springboot就是从这个方法启动Tomcat的
 				onRefresh();
 
 				// Check for listener beans and register them.
+				//将事件监听器注册到多播器上
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
-				//实例化单例对象，通过beanDefinitionMap中的Beandefinition 对Bean的描述信息来创建，然后将其实例化的对象存放在单例池中
+				//实例化单例对象，这里就是实例化剩余的Bean，除了前面已经实例化的BeanPostProcessor，
+				// 通过beanDefinitionMap中的Beandefinition 对Bean的描述信息来创建，然后将其实例化的对象存放在单例池中
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				//最后刷新容器，发布刷新事件，Springcloud就是从这里启动的
 				finishRefresh();
 			}
 

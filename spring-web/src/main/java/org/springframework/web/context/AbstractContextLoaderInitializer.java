@@ -57,10 +57,24 @@ public abstract class AbstractContextLoaderInitializer implements WebApplication
 	 * @param servletContext the servlet context to register the listener against
 	 */
 	protected void registerContextLoaderListener(ServletContext servletContext) {
+		//创建我们的根上下文环境WebApplcaitionContext(AnnotationConfigWebApplicationContext),具体的实现在
+		//AbstractAnnotationConfigDispatcherServletInitializer中
 		WebApplicationContext rootAppContext = createRootApplicationContext();
 		if (rootAppContext != null) {
+			/**
+			 * 创建一个监听器对象，也就是xml中配置的代码
+			 * <listener>
+			 *         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+			 *     </listener>
+			 *
+			 *     <context-param>
+			 *         <param-name>contextConfigLocation</param-name>
+			 *         <param-value>/WEB-INF/app-context.xml</param-value>
+			 *     </context-param>
+			 */
 			ContextLoaderListener listener = new ContextLoaderListener(rootAppContext);
 			listener.setContextInitializers(getRootApplicationContextInitializers());
+			//把监听器添加到Servlet容器中
 			servletContext.addListener(listener);
 		}
 		else {

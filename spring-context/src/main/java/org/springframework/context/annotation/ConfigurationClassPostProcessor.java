@@ -320,6 +320,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 			configClasses.removeAll(alreadyParsed);
 
 			// Read the model and create bean definitions based on its content
+			/**
+			 * 生成BeanDefinition
+			 */
 			if (this.reader == null) {
 				this.reader = new ConfigurationClassBeanDefinitionReader(
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
 
-@Repository
+
 public class UserDao {
 
 	public UserDao(){

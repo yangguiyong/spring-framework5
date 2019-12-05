@@ -258,9 +258,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+					//创建bean完成后将其从singletonsCurrentlyInCreation中移除，表示已经创建完成
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) {
+					//将生成的spring Bean 放入单例池中，并从singletonFactories，earlySingletonObjects移除对应的对象
 					addSingleton(beanName, singletonObject);
 				}
 			}

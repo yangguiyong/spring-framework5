@@ -472,7 +472,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Prepare method overrides.
 		/**
-		 * 处理look-up和replace-method配置，spring将这两个配置统称为
+		 * 处理look-up和replace-method配置，这两个配置存放在BeanDefinition中的methodOverrides,
+		 * 我们知道在bean实例化的过程中如果检测到存在的methodOverrides，则会动态的为当前bean生成
+		 * 代理并使用对应的拦截器为bean的增强处理。
 		 */
 		try {
 			mbdToUse.prepareMethodOverrides();
@@ -484,7 +486,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		try {
 			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
-			//第一次调用后置处理器
+			//第一次调用后置处理器,通过后置处理器生成代理对象，一般情况下此处不会生成代理对象，不管是
+			//jdk动态代理还是cglib代理都不会在此处进行代理，因为真实的对象还没有生成
+			//这一步是是aop和事务的关键，因为这里解析aop切面信息进行缓存
+			//执行实现了InstantiationAwareBeanPostProcessor的后置处理器中postProcessBeforeInstantiation方法
+			//和所有后置处理器的postProcessAfterInitialization方法
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 			if (bean != null) {
 				return bean;
@@ -496,6 +502,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
+			//创建bean,如果需要代理则会产生代理对象
 			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Finished creating instance of bean '" + beanName + "'");
@@ -557,7 +564,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
-					//第三次调用后置处理器
+					//第三次调用后置处理器，处理AutoWired的注解的预解析
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -578,14 +585,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				logger.debug("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
-			//第四次调用后置处理器，判断是否需要AOP
+			//第四次调用后置处理器，将产生的对象，还不是完成的bean封装在ObjectFactory中，并将ObjectFactory放在singletonFactories，
+			// 这里是往singletonFactories第二个map,二级缓存中放入一个ObjectFactory,这样可以通过ObjectFactory做很多事
+			//getEarlyBeanReference方法内部实际上是执行了后置处理器，AbstractAutoProxyCreator这个后置处理器的方法用于cglib产生代理对象，主要是用于AOP
+			//cglib代理类，当Spring中存在循环引用的情况下，通过该后置处理器来实现AOP的实现。
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
-			//填充属性，也就是常说的自动注入，里面会完成第五次和第六次后置处理器的调用
+			//填充属性，也就是常说的自动注入，主要是AutowiredAnnotationBeanPostProcessor这个后置处理器执行属性注入的功能，里面会完成第五次和第六次后置处理器的调用
 			populateBean(beanName, mbd, instanceWrapper);
 			//初始化Spring，执行生命周期回调方法，里面会进行第七次和第八次后置处理器的调用
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
@@ -629,6 +639,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Register bean as disposable.
 		try {
+			//
 			registerDisposableBeanIfNecessary(beanName, bean, mbd);
 		}
 		catch (BeanDefinitionValidationException ex) {
@@ -1135,6 +1146,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Candidate constructors for autowiring?
+		//第二次调用后置处理器
 		Constructor<?>[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);
 		if (ctors != null || mbd.getResolvedAutowireMode() == AUTOWIRE_CONSTRUCTOR ||
 				mbd.hasConstructorArgumentValues() || !ObjectUtils.isEmpty(args)) {
@@ -1696,14 +1708,43 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}, getAccessControlContext());
 		}
 		else {
+			//执行实现了Aware接口的实现类，这个方法执行的是BeanClassLoaderAware、BeanNameAware，BeanFactoryAware接口的实现类
 			invokeAwareMethods(beanName, bean);
 		}
 
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
-			//执行Spring当中的后置处理器 BeanPostProcessor的实现类,
+			// 执行Spring当中的后置处理器 BeanPostProcessor的实现类,
 			// 执行生命周期初始化回调方法，即@PostConstruct修饰的方法，@PostConstruct注解其实对应着相应的BeanPostProcessor的实现类
 			//即执行实现类中的postProcessBeforeInitialization方法
+			//注意：先执行自定义的BeanPostProcessor的实现类，在执行@PostConstruct
+
+			/**
+			 * 这里也会在后置处理器的方法里执行Aware实现了接口的Bean的方法
+			 * org.springframework.context.support.ApplicationContextAwareProcessor#postProcessBeforeInitialization(java.lang.Object, java.lang.String)
+			 * 	主要是下面的接口实现类
+			 * 	private void invokeAwareInterfaces(Object bean) {
+			 * 		if (bean instanceof Aware) {
+			 * 			if (bean instanceof EnvironmentAware) {
+			 * 				((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
+			 *                        }
+			 * 			if (bean instanceof EmbeddedValueResolverAware) {
+			 * 				((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
+			 *            }
+			 * 			if (bean instanceof ResourceLoaderAware) {
+			 * 				((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
+			 *            }
+			 * 			if (bean instanceof ApplicationEventPublisherAware) {
+			 * 				((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
+			 *            }
+			 * 			if (bean instanceof MessageSourceAware) {
+			 * 				((MessageSourceAware) bean).setMessageSource(this.applicationContext);
+			 *            }
+			 * 			if (bean instanceof ApplicationContextAware) {
+			 * 				((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+			 *            }* 		}
+			 *    }
+			 */
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
@@ -1717,7 +1758,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					beanName, "Invocation of init method failed", ex);
 		}
 		if (mbd == null || !mbd.isSynthetic()) {
-			//执行Spring当中的后置处理器BeanPostProcessor实现类中的postProcessAfterInitialization方法，AOP的操作就在这个方法中实现的
+			//执行Spring当中的后置BeanPostProcessor处理器BeanPostProcessor实现类中的postProcessAfterInitialization方法，AOP的操作就在这个方法中实现的
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 
