@@ -280,28 +280,48 @@ public abstract class TransactionAspectSupport implements BeanFactoryAware, Init
 
 		// If the transaction attribute is null, the method is non-transactional.
 		TransactionAttributeSource tas = getTransactionAttributeSource();
+		//获取事务相关的属性
 		final TransactionAttribute txAttr = (tas != null ? tas.getTransactionAttribute(method, targetClass) : null);
+		/**
+		 * 获取平台事务管理器PlatformTransactionManager
+		 * 	如果@Transctional注解中设置了相关属性transactionManager，指定具体的事务管理器，@Transactional(transactionManager = "")，那么就获取指定的
+		 * 	如果没有设置属性，那么就根据PlatformTransactionManager类型从容器中获取Bean
+		 * 			this.beanFactory.getBean(PlatformTransactionManager.class)
+		 */
 		final PlatformTransactionManager tm = determineTransactionManager(txAttr);
+
 		final String joinpointIdentification = methodIdentification(method, targetClass, txAttr);
 
 		if (txAttr == null || !(tm instanceof CallbackPreferringPlatformTransactionManager)) {
 			// Standard transaction demarcation with getTransaction and commit/rollback calls.
+			/**
+			 * 如果是启用了事务，那么这里就创建一个事务
+			 */
 			TransactionInfo txInfo = createTransactionIfNecessary(tm, txAttr, joinpointIdentification);
 
 			Object retVal;
 			try {
 				// This is an around advice: Invoke the next interceptor in the chain.
 				// This will normally result in a target object being invoked.
+				/**
+				 *执行目标方法
+				 */
 				retVal = invocation.proceedWithInvocation();
 			}
 			catch (Throwable ex) {
 				// target invocation exception
+				/**
+				 * 如果发生了异常，就进行事务回滚
+				 */
 				completeTransactionAfterThrowing(txInfo, ex);
 				throw ex;
 			}
 			finally {
 				cleanupTransactionInfo(txInfo);
 			}
+			/**
+			 * 如果正常执行，就提交事务
+			 */
 			commitTransactionAfterReturning(txInfo);
 			return retVal;
 		}

@@ -159,6 +159,14 @@ public class ReflectiveMethodInvocation implements ProxyMethodInvocation, Clonea
 	@Nullable
 	public Object proceed() throws Throwable {
 		// We start with an index of -1 and increment early.
+		/**
+		 * currentInterceptorIndex默认值为-1，如果没有拦截器执行目标方法
+		 * 或者拦截器的索引和（拦截器数组长度-1）大小一样，即执行到了最后一个拦截器
+		 * 那么就会执行目标方法，很容易理解，没有拦截器或者拦截器执行完了就需要执行目标方法
+		 *
+		 * 链式获取每一个拦截器，拦截器执行invoke方法，每一个拦截器等待下一个拦截器执行完成返回以后再执行
+		 * 通过使用拦截器链的机制，保证通知方法与目标方法的执行顺序
+		 */
 		if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
 			return invokeJoinpoint();
 		}

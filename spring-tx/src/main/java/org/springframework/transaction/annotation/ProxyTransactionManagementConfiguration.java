@@ -37,11 +37,22 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
 @Configuration
 public class ProxyTransactionManagementConfiguration extends AbstractTransactionManagementConfiguration {
 
+	/**
+	 * 注册事务增强器到容器中
+	 */
 	@Bean(name = TransactionManagementConfigUtils.TRANSACTION_ADVISOR_BEAN_NAME)
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public BeanFactoryTransactionAttributeSourceAdvisor transactionAdvisor() {
 		BeanFactoryTransactionAttributeSourceAdvisor advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
+		/**
+		 * 需要将事务属性添加到事务增强器中
+		 */
 		advisor.setTransactionAttributeSource(transactionAttributeSource());
+		/**
+		 * 将事务拦截器添加到事务增强器中，即TransactionInterceptor，TransactionInterceptor里面保存了事务属性信息和事务管理器
+		 * TransactionInterceptor实现了MethodInterceptor，MethodInterceptor这个是AOP中的拦截器链中执行的方法拦截器，其底层
+		 * 也是执行拦截器链，跟SpringAOP流程类似，在TransactionInterceptor中的invoke方法里面具体执行
+		 */
 		advisor.setAdvice(transactionInterceptor());
 		if (this.enableTx != null) {
 			advisor.setOrder(this.enableTx.<Integer>getNumber("order"));
@@ -51,6 +62,10 @@ public class ProxyTransactionManagementConfiguration extends AbstractTransaction
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
+	/**
+	 * 将事务属性Bean添加到容器中，AnnotationTransactionAttributeSource里面包含TransactionAnnotationParser,
+	 * TransactionAnnotationParser用于 解析Spring事务注解的相关属性，即解析@Transactional注解中的相关属性
+	 */
 	public TransactionAttributeSource transactionAttributeSource() {
 		return new AnnotationTransactionAttributeSource();
 	}
@@ -59,8 +74,12 @@ public class ProxyTransactionManagementConfiguration extends AbstractTransaction
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public TransactionInterceptor transactionInterceptor() {
 		TransactionInterceptor interceptor = new TransactionInterceptor();
+		/**
+		 * 事务属性也添加到事务拦截器中
+		 */
 		interceptor.setTransactionAttributeSource(transactionAttributeSource());
 		if (this.txManager != null) {
+			//事务管理器添加到事务拦截器
 			interceptor.setTransactionManager(this.txManager);
 		}
 		return interceptor;

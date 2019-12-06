@@ -68,8 +68,17 @@ public class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 			if (mode != null && proxyTargetClass != null && AdviceMode.class == mode.getClass() &&
 					Boolean.class == proxyTargetClass.getClass()) {
 				candidateFound = true;
+
 				if (mode == AdviceMode.PROXY) {
+					/**
+					 * 如果是AdviceMode.PROXY，那么就注册Bean到容器中，方法中具体注册的是InfrastructureAdvisorAutoProxyCreator,
+					 * InfrastructureAdvisorAutoProxyCreator这个类其集成链与@EnableAspectJAutoProxy注解引入的后置处理器是一样的，
+					 * 都集成了 AbstractAdvisorAutoProxyCreator抽象类，其目的就是生成代理对象。
+					 */
 					AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry);
+					/**
+					 * proxyTargetClass默认是false
+					 */
 					if ((Boolean) proxyTargetClass) {
 						AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
 						return;

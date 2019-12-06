@@ -44,6 +44,10 @@ public class TransactionManagementConfigurationSelector extends AdviceModeImport
 	protected String[] selectImports(AdviceMode adviceMode) {
 		switch (adviceMode) {
 			case PROXY:
+				/**
+				 * 导入两个Bean，AutoProxyRegistrar将会注册一个后置处理器到容器中，通过后置处理器用于创建一个代理对象，代理对象执行方法时利用拦截器链对方法进行增强处理
+				 * ProxyTransactionManagementConfiguration 则给容器中注册事务增强，以便AutoProxyRegistrar创建的后置处理器生成的代理对象能够执行拦截器链
+				 */
 				return new String[] {AutoProxyRegistrar.class.getName(),
 						ProxyTransactionManagementConfiguration.class.getName()};
 			case ASPECTJ:

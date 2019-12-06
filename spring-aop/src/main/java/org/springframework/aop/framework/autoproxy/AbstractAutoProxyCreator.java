@@ -245,10 +245,21 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) throws BeansException {
 		Object cacheKey = getCacheKey(beanClass, beanName);
 
+		/**
+		 * advisedBeans保存了需要增强的Bean
+		 */
 		if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
 			if (this.advisedBeans.containsKey(cacheKey)) {
 				return null;
 			}
+			/**
+			 * isInfrastructureClass判断当前Bean是否是Advice、Pointcut、Advisor、AopInfrastructureBean的实现类，
+			 * 在子类中也有实现isInfrastructureClass方法，判断是否标注@Aspect注解
+			 *
+			 * shouldSkip判断是否跳过
+			 *
+			 * 如果是切面类，则无需执行增强，将其放入advisedBeans中，并设置其value值为false，表示无需增强
+			 */
 			if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
 				this.advisedBeans.put(cacheKey, Boolean.FALSE);
 				return null;
@@ -338,6 +349,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		if (StringUtils.hasLength(beanName) && this.targetSourcedBeans.contains(beanName)) {
 			return bean;
 		}
+		//从advisedBeans中获取Bean，查看是否存在，如果存在是否需要执行增强
 		if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
 			return bean;
 		}
@@ -349,6 +361,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		// Create proxy if we have advice.
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
+			//将匹配的需要增强的Bean加入到advisedBeans缓存中
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
 			Object proxy = createProxy(
 					bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
@@ -448,6 +461,11 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		ProxyFactory proxyFactory = new ProxyFactory();
 		proxyFactory.copyFrom(this);
+
+		/**
+		 * 判定proxyTargetClass是否为TRUE，@EnableAspectJAutoProxy中可设置初始值，默认为false，为TRUE表示使用cglib代理，
+		 * 如果是代理类，会自动设置为TRUE
+		 */
 
 		if (!proxyFactory.isProxyTargetClass()) {
 			if (shouldProxyTargetClass(beanClass, beanName)) {

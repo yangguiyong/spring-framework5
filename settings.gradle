@@ -31,4 +31,5 @@ rootProject.children.each {project ->
 }
 include 'my-spring-test'
 include 'mny-spring-annotation'
+include 'my-spring-tx'
 

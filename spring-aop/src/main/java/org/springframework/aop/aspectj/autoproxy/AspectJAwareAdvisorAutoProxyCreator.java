@@ -98,6 +98,20 @@ public class AspectJAwareAdvisorAutoProxyCreator extends AbstractAdvisorAutoProx
 	@Override
 	protected boolean shouldSkip(Class<?> beanClass, String beanName) {
 		// TODO: Consider optimization by caching the list of the aspect names
+		/**
+		 * 找到所有的Advice，也就是切面类中定义的具体的增强方法
+		 *	如：
+		 *      @Around("myAnnotationPonitCut() && @annotation(myAnnotation)")
+		 * 		public void beforeAdvice(ProceedingJoinPoint joinPoint,MyAnnotation myAnnotation) throws Throwable {
+		 * 		System.out.println("执行AOP around start");
+		 * 		System.out.println("打印自定义注解："+myAnnotation.value());
+		 * 		Object proceed = joinPoint.proceed();
+		 * 		System.out.println("执行AOP around after");
+		 *    }
+		 *
+		 *    并判断Advisor是否是AspectJPointcutAdvisor，使用注解的话，这里是InstantiationModelAwarePointcutAdvisor，判断不会成立
+		 */
+
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
 		for (Advisor advisor : candidateAdvisors) {
 			if (advisor instanceof AspectJPointcutAdvisor &&

@@ -53,6 +53,7 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 
 		// This is somewhat tricky... We have to process introductions first,
 		// but we need to preserve order in the ultimate list.
+		//获取当前Bean的所有增强的数量，并作为list的初始长度
 		List<Object> interceptorList = new ArrayList<Object>(config.getAdvisors().length);
 		Class<?> actualClass = (targetClass != null ? targetClass : method.getDeclaringClass());
 		boolean hasIntroductions = hasMatchingIntroductions(config, actualClass);
@@ -65,6 +66,11 @@ public class DefaultAdvisorChainFactory implements AdvisorChainFactory, Serializ
 				if (config.isPreFiltered() || pointcutAdvisor.getPointcut().getClassFilter().matches(actualClass)) {
 					MethodMatcher mm = pointcutAdvisor.getPointcut().getMethodMatcher();
 					if (MethodMatchers.matches(mm, method, actualClass, hasIntroductions)) {
+						/**
+						 * getInterceptors方法里面就是判断advisor增强是否是MethodInterceptor，如果是则添加到list中，并返回数组
+						 * 如果不是则用适配器转换一下再加入到list中，最终返回数组
+						 */
+
 						MethodInterceptor[] interceptors = registry.getInterceptors(advisor);
 						if (mm.isRuntime()) {
 							// Creating a new object instance in the getInterceptors() method

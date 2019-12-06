@@ -491,6 +491,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			//这一步是是aop和事务的关键，因为这里解析aop切面信息进行缓存
 			//执行实现了InstantiationAwareBeanPostProcessor的后置处理器中postProcessBeforeInstantiation方法
 			//和所有后置处理器的postProcessAfterInitialization方法
+			/**
+			 * 启用AOP的注解@EnableAspectJAutoProxy会引入AnnotationAwareAspectJAutoProxyCreator这个后置处理器，
+			 * 这个后置处理器实现了SmartInstantiationAwareBeanPostProcessor这个接口，SmartInstantiationAwareBeanPostProcessor继承了InstantiationAwareBeanPostProcessor。
+			 * 从而会执行相应的方法postProcessBeforeInstantiation
+			 *
+			 */
+
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
 			if (bean != null) {
 				return bean;
@@ -587,8 +594,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}
 			//第四次调用后置处理器，将产生的对象，还不是完成的bean封装在ObjectFactory中，并将ObjectFactory放在singletonFactories，
 			// 这里是往singletonFactories第二个map,二级缓存中放入一个ObjectFactory,这样可以通过ObjectFactory做很多事
-			//getEarlyBeanReference方法内部实际上是执行了后置处理器，AbstractAutoProxyCreator这个后置处理器的方法用于cglib产生代理对象，主要是用于AOP
-			//cglib代理类，当Spring中存在循环引用的情况下，通过该后置处理器来实现AOP的实现。
+			//getEarlyBeanReference方法内部实际上是执行了后置处理器，AbstractAutoProxyCreator这个后置处理器的方法用于产生代理对象，
+			// 当Spring中存在循环引用的情况下，通过该后置处理器来实现AOP的实现。在getSingleton方法中会调用这里传入的lamda表达式
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
