@@ -401,6 +401,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			this.earlyApplicationEvents.add(applicationEvent);
 		}
 		else {
+			/**
+			 * 获取应用容器事件多播器（派发器），将这个事件派发给多个监听器
+			 */
 			getApplicationEventMulticaster().multicastEvent(applicationEvent, eventType);
 		}
 
@@ -547,7 +550,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
-				//创建事件多播器
+				//创建事件多播器,并将其放入BeanFactory中
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
@@ -564,7 +567,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
-				//最后刷新容器，发布刷新事件，Springcloud就是从这里启动的
+				//最后刷新容器，发布刷新事件ContextRefreshedEvent，Springcloud就是从这里启动的
 				finishRefresh();
 			}
 
@@ -674,6 +677,9 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// BeanFactory interface not registered as resolvable type in a plain factory.
 		// MessageSource registered (and found for autowiring) as a bean.
+		/**
+		 * 这些类可以使用自动装配，在我们自定义组件中也可以直接使用@Autowired等注解自动注入。
+		 */
 		beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
 		beanFactory.registerResolvableDependency(ResourceLoader.class, this);
 		beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
@@ -776,6 +782,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see org.springframework.context.event.SimpleApplicationEventMulticaster
 	 */
 	protected void initApplicationEventMulticaster() {
+		/**
+		 * 从BeanFactory中查找name 为applicationEventMulticaster的多播器，如果没有找到则直接创建
+		 * SimpleApplicationEventMulticaster多播器
+		 */
 		ConfigurableListableBeanFactory beanFactory = getBeanFactory();
 		if (beanFactory.containsLocalBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME)) {
 			this.applicationEventMulticaster =
@@ -906,12 +916,22 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		clearResourceCaches();
 
 		// Initialize lifecycle processor for this context.
+		/**
+		 * 创建lifecycleProcessor的LifecycleProcessor，LifecycleProcessor实现了Lifecycle，如果容器中有，那么直接从容器中获取，
+		 * 也就是我们自己实现LifecycleProcessor，并将其加入到容器中，没有的话直接创建LifecycleProcessor的实现类DefaultLifecycleProcessor
+		 */
 		initLifecycleProcessor();
 
 		// Propagate refresh to lifecycle processor first.
+		/**
+		 * 将容器中实现了Lifecycle的的子接口SmartLifecycle的Bean调用其start方法，且SmartLifecycle中的方法isAutoStartup方法必须返回TRUE
+		 */
 		getLifecycleProcessor().onRefresh();
 
 		// Publish the final event.
+		/**
+		 * 发布容器刷新事件
+		 */
 		publishEvent(new ContextRefreshedEvent(this));
 
 		// Participate in LiveBeansView MBean, if active.

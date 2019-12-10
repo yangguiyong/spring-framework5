@@ -496,6 +496,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			 * 这个后置处理器实现了SmartInstantiationAwareBeanPostProcessor这个接口，SmartInstantiationAwareBeanPostProcessor继承了InstantiationAwareBeanPostProcessor。
 			 * 从而会执行相应的方法postProcessBeforeInstantiation
 			 *
+			 * InstantiationAwareBeanPostProcessor#postProcessBeforeInstantiation(java.lang.Class, java.lang.String)
 			 */
 
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
@@ -550,7 +551,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 		if (instanceWrapper == null) {
-			//实例化对象，调用构造方法，第二次调用后置处理器
+			//实例化对象，调用构造方法，第二次调用后置处理器,SmartInstantiationAwareBeanPostProcessor.determineCandidateConstructors
 			/**
 			 * createBeanInstance中包含三种创建bean实例的方式
 			 * 1、通过工厂方法创建
@@ -571,7 +572,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
-					//第三次调用后置处理器，处理AutoWired的注解的预解析
+					//第三次调用后置处理器，处理AutoWired的注解的预解析,MergedBeanDefinitionPostProcessor.postProcessMergedBeanDefinition
 					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
 				}
 				catch (Throwable ex) {
@@ -595,7 +596,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			//第四次调用后置处理器，将产生的对象，还不是完成的bean封装在ObjectFactory中，并将ObjectFactory放在singletonFactories，
 			// 这里是往singletonFactories第二个map,二级缓存中放入一个ObjectFactory,这样可以通过ObjectFactory做很多事
 			//getEarlyBeanReference方法内部实际上是执行了后置处理器，AbstractAutoProxyCreator这个后置处理器的方法用于产生代理对象，
-			// 当Spring中存在循环引用的情况下，通过该后置处理器来实现AOP的实现。在getSingleton方法中会调用这里传入的lamda表达式
+			// SmartInstantiationAwareBeanPostProcessor.getEarlyBeanReference
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
@@ -603,8 +604,16 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		Object exposedObject = bean;
 		try {
 			//填充属性，也就是常说的自动注入，主要是AutowiredAnnotationBeanPostProcessor这个后置处理器执行属性注入的功能，里面会完成第五次和第六次后置处理器的调用
+			/**
+			 * InstantiationAwareBeanPostProcessor#postProcessAfterInstantiation(java.lang.Object, java.lang.String)
+			 * InstantiationAwareBeanPostProcessor#postProcessPropertyValues(org.springframework.beans.PropertyValues, java.beans.PropertyDescriptor[], java.lang.Object, java.lang.String)
+			 */
 			populateBean(beanName, mbd, instanceWrapper);
 			//初始化Spring，执行生命周期回调方法，里面会进行第七次和第八次后置处理器的调用
+			/**
+			 * BeanPostProcessor#postProcessBeforeInitialization(java.lang.Object, java.lang.String)
+			 * BeanPostProcessor#postProcessAfterInitialization(java.lang.Object, java.lang.String)
+			 */
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -646,7 +655,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Register bean as disposable.
 		try {
-			//
+			/**
+			 * 注册实现了DisposableBean的Bean，用于容器销毁的时候执行destroy方法
+			 */
 			registerDisposableBeanIfNecessary(beanName, bean, mbd);
 		}
 		catch (BeanDefinitionValidationException ex) {
@@ -1383,6 +1394,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		if (pvs != null) {
+			/**
+			 * 属性赋值
+			 */
 			applyPropertyValues(beanName, mbd, bw, pvs);
 		}
 	}
@@ -1728,7 +1742,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 			/**
 			 * 这里也会在后置处理器的方法里执行Aware实现了接口的Bean的方法
-			 * org.springframework.context.support.ApplicationContextAwareProcessor#postProcessBeforeInitialization(java.lang.Object, java.lang.String)
+			 * ApplicationContextAwareProcessor#postProcessBeforeInitialization(java.lang.Object, java.lang.String)
 			 * 	主要是下面的接口实现类
 			 * 	private void invokeAwareInterfaces(Object bean) {
 			 * 		if (bean instanceof Aware) {

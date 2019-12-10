@@ -109,13 +109,18 @@ import org.springframework.util.ReflectionUtils;
  * @see #onStartup(Set, ServletContext)
  * @see WebApplicationInitializer
  */
+
+/**
+ * @HandlesTypes，容器在启动时会将@HandlesTypes指定的这个类型下面的子类（实现类、子接口）传递过来
+ * 也就是会将传入到下面onStartup方法中的webAppInitializerClasses参数中
+ */
 @HandlesTypes(WebApplicationInitializer.class)
 public class SpringServletContainerInitializer implements ServletContainerInitializer {
 
 	/**
 	 * Delegate the {@code ServletContext} to any {@link WebApplicationInitializer}
 	 * implementations present on the application classpath.
-	 * <p>Because this class declares @{@code HandlesTypes(WebApplicationInitializer.class)},
+		 * <p>Because this class declares @{@code HandlesTypes(WebApplicationInitializer.class)},
 	 * Servlet 3.0+ containers will automatically scan the classpath for implementations
 	 * of Spring's {@code WebApplicationInitializer} interface and provide the set of all
 	 * such types to the {@code webAppInitializerClasses} parameter of this method.
