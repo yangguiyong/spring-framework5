@@ -310,8 +310,14 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 				" and static attributes " + this.staticAttributes);
 		}
 
+		/**
+		 * 将视图模型数据转换成一个Map
+		 */
 		Map<String, Object> mergedModel = createMergedOutputModel(model, request, response);
 		prepareResponse(request, response);
+		/**
+		 * 渲染合并视图模型数据
+		 */
 		renderMergedOutputModel(mergedModel, getRequestToExpose(request), response);
 	}
 
@@ -439,6 +445,9 @@ public abstract class AbstractView extends WebApplicationObjectSupport implement
 			HttpServletRequest request) throws Exception {
 
 		model.forEach((modelName, modelValue) -> {
+			/**
+			 *查看当前key的value值是否为null，如果不为null，则放在request中
+			 */
 			if (modelValue != null) {
 				request.setAttribute(modelName, modelValue);
 				if (logger.isDebugEnabled()) {

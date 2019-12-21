@@ -957,10 +957,16 @@ public class DispatcherServlet extends FrameworkServlet {
 			Exception dispatchException = null;
 
 			try {
+				//处理文件上传的请求
 				processedRequest = checkMultipart(request);
 				multipartRequestParsed = (processedRequest != request);
 
 				// Determine handler for the current request.
+				/**
+				 * 获取HandlerExecutionChain 对象，mappedHandler 存放了请求与Handler的映射关系，可以从中获得Handler处理器，
+				 * 其实就是为了获取Controller控制器，根据发送的请求找到相应的Controller。
+				 */
+
 				mappedHandler = getHandler(processedRequest);
 				if (mappedHandler == null) {
 					noHandlerFound(processedRequest, response);
@@ -968,6 +974,12 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				// Determine handler adapter for the current request.
+				/**
+				 * 获取HandlerAdapter适配器，用于执行目标方法
+				 * 为什么要采用适配器？因为Controller的实现方式有3中，直接实现Controller接口、实现HttpRequestHandler接口、采用注解的方式
+				 * 通过适配器就可以灵活的采用不同的方式实现Controller
+				 *
+				 */
 				HandlerAdapter ha = getHandlerAdapter(mappedHandler.getHandler());
 
 				// Process last-modified header, if supported by the handler.
@@ -983,11 +995,13 @@ public class DispatcherServlet extends FrameworkServlet {
 					}
 				}
 
+				//执行拦截器的preHandle方法
 				if (!mappedHandler.applyPreHandle(processedRequest, response)) {
 					return;
 				}
 
 				// Actually invoke the handler.
+				//执行目标方法
 				mv = ha.handle(processedRequest, response, mappedHandler.getHandler());
 
 				if (asyncManager.isConcurrentHandlingStarted()) {
@@ -995,6 +1009,8 @@ public class DispatcherServlet extends FrameworkServlet {
 				}
 
 				applyDefaultViewName(processedRequest, mv);
+
+				//执行拦截器的postHandle方法
 				mappedHandler.applyPostHandle(processedRequest, response, mv);
 			}
 			catch (Exception ex) {
@@ -1005,6 +1021,11 @@ public class DispatcherServlet extends FrameworkServlet {
 				// making them available for @ExceptionHandler methods and other scenarios.
 				dispatchException = new NestedServletException("Handler dispatch failed", err);
 			}
+			/**
+			 * 执行渲染视图的相关操作，且在渲染视图完成之后执行拦截器的afterCompletion方法。
+			 * 在这里会将ModelAndView中的模型数据放入在request域中
+			 */
+
 			processDispatchResult(processedRequest, response, mappedHandler, mv, dispatchException);
 		}
 		catch (Exception ex) {
@@ -1066,6 +1087,9 @@ public class DispatcherServlet extends FrameworkServlet {
 
 		// Did the handler return a view to render?
 		if (mv != null && !mv.wasCleared()) {
+			/**
+			 * 渲染视图
+			 */
 			render(mv, request, response);
 			if (errorView) {
 				WebUtils.clearErrorRequestAttributes(request);
@@ -1179,6 +1203,12 @@ public class DispatcherServlet extends FrameworkServlet {
 	 */
 	@Nullable
 	protected HandlerExecutionChain getHandler(HttpServletRequest request) throws Exception {
+		/**
+		 * 配置文件中如果没有配置<mvc：default-servlet-handler/>和<mvc:annotation-driver/>,handlerMappings不会加载
+		 * RequestMappingHandlerMapping和SimpleUrlHandlerMapping这两个类。
+		 * RequestMappingHandlerMapping用来处理RequestMapping注解映射的
+		 * SimpleUrlHandlerMapping用来处理静态资源的
+		 */
 		if (this.handlerMappings != null) {
 			for (HandlerMapping hm : this.handlerMappings) {
 				if (logger.isTraceEnabled()) {
@@ -1225,6 +1255,9 @@ public class DispatcherServlet extends FrameworkServlet {
 				if (logger.isTraceEnabled()) {
 					logger.trace("Testing handler adapter [" + ha + "]");
 				}
+				/**
+				 * 判断当前Handler是哪一种，然后返回具体的HandlerAdapter
+				 */
 				if (ha.supports(handler)) {
 					return ha;
 				}
@@ -1322,6 +1355,9 @@ public class DispatcherServlet extends FrameworkServlet {
 			if (mv.getStatus() != null) {
 				response.setStatus(mv.getStatus().value());
 			}
+			/**
+			 * 渲染视图
+			 */
 			view.render(mv.getModelInternal(), request, response);
 		}
 		catch (Exception ex) {

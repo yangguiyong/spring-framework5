@@ -983,7 +983,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 	}
 
 	/**
-	 * Template method to create a new InitBinderDataBinderFactory instance.
+	 * Template method to create a new InitBinderDataBinderFactory instance.supports
 	 * <p>The default implementation creates a ServletRequestDataBinderFactory.
 	 * This can be overridden for custom ServletRequestDataBinder subclasses.
 	 * @param binderMethods {@code @InitBinder} methods
